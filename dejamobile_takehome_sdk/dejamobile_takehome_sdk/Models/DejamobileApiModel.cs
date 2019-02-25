@@ -10,5 +10,6 @@ namespace dejamobile_takehome_sdk.Models
         public static string digitizedCard = "digitizedCard";
         public static string statistics = "stats";
         public static string users = "users";
+        public static string login = "login";
     }
 }

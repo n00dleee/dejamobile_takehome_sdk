@@ -28,7 +28,7 @@ namespace UnitTestSdk
         }
 
         [TestMethod]
-        public void GetAllUser()
+        public void LogTestUser()
         {
             //arrange
             Sdk sdk = new Sdk();
@@ -37,7 +37,11 @@ namespace UnitTestSdk
             Task<TaskResult> temp = sdk.ConnectUser(testUser, testUserPassword);
             TaskResult result = temp.Result;
 
+            //assert
+            Assert.IsTrue(result.result);
+
             //ensure user is properly connected
+            Assert.IsTrue(sdk.getStatus());
 
         }
     }

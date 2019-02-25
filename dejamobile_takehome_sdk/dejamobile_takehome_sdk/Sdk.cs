@@ -10,13 +10,13 @@ namespace dejamobile_takehome_sdk
 {
     public class Sdk
     {
-        clientStatus status;
+        bool status;
         private DejaMobileHttpClient customHttpClient;
         private Services.DatabaseManager.IDatabaseManager dbManager;
 
         public Sdk()
         {
-            status = clientStatus.unknown;
+            status = false;
             customHttpClient = new DejaMobileHttpClient();
             dbManager = new Services.DatabaseManager.VolatileFakeDigitizedCardDataBase();
         }
@@ -37,18 +37,18 @@ namespace dejamobile_takehome_sdk
 
         private void onUserConnected()
         {
-            status = clientStatus.connected;
+            status = true;
         }
 
         private void onUserNotConnected()
         {
-            status = clientStatus.disconnected;
+            status = false;
 
         }
 
-        public string getStatus()
+        public bool getStatus()
         {
-            return status.ToString();
+            return status;
         }
 
         public async Task<TaskResult> CreateUser(string userName, string password, string firstName ="", string lastName = "", string phoneNumber = "")
@@ -73,9 +73,9 @@ namespace dejamobile_takehome_sdk
 
         }
 
-        public async Task<TaskResult> ConnectUser(string user, string password)
+        public async Task<TaskResult> ConnectUser(string userName, string password)
         {
-            HttpResponseMessage rsp = await customHttpClient.performRequest(DejaMobileHttpClient.Request.logUser, new Models.UserModel(user, password));
+            HttpResponseMessage rsp = await customHttpClient.performRequest(DejaMobileHttpClient.Request.logUser, new Models.UserModel(userName, password));
             if (rsp.StatusCode != System.Net.HttpStatusCode.OK)
             {
                 return new TaskResult(true, TaskResult.TaskStatus.finished, null, "User successfully connected");
@@ -88,7 +88,7 @@ namespace dejamobile_takehome_sdk
 
         public async Task<TaskResult> AddCard(string ownerName, string cardNumber, string expDate, string crypto)
         {
-            if (status != clientStatus.connected)
+            if (!status)
                 return new TaskResult(false, TaskResult.TaskStatus.finished, null, "SDK ERROR : user not connected. Please connect user before trying to use this method");
 
             HttpResponseMessage rsp = await customHttpClient.performRequest(DejaMobileHttpClient.Request.addCard, new Models.CardModel(ownerName, expDate, crypto));
@@ -104,7 +104,7 @@ namespace dejamobile_takehome_sdk
 
         public TaskResult getDigitizedCardsList()
         {
-            if (status != clientStatus.connected)
+            if (!status)
                 return new TaskResult(false, TaskResult.TaskStatus.finished, null, "SDK ERROR : user not connected. Please connect user before trying to use this method");
 
             if (dbManager.isConnected != true)
@@ -119,7 +119,7 @@ namespace dejamobile_takehome_sdk
 
         public TaskResult deleteDigitizedCard(Models.DigitizedCardModel digitizedCard)
         {
-            if (status != clientStatus.connected)
+            if (!status)
                 return new TaskResult(false, TaskResult.TaskStatus.finished, null, "SDK ERROR : user not connected. Please connect user before trying to use this method");
 
             if (dbManager.isConnected != true)
@@ -133,7 +133,7 @@ namespace dejamobile_takehome_sdk
 
         public async Task<TaskResult> getPaymentsHistory()
         {
-            if (status != clientStatus.connected)
+            if (!status)
                 return new TaskResult(false, TaskResult.TaskStatus.finished, null, "SDK ERROR : user not connected. Please connect user before trying to use this method");
 
             if (dbManager.isConnected != true)
@@ -248,7 +248,7 @@ namespace dejamobile_takehome_sdk
                         expectedStatusCode = System.Net.HttpStatusCode.Created;
                         break;
                     case Request.logUser:
-                        urlComplete = buildCompleteUrl(Models.DejamobileApiModel.users);
+                        urlComplete = buildCompleteUrl(Models.DejamobileApiModel.login);
                         method = getHttpMethodFromRequestType(requestType);
                         expectedStatusCode = System.Net.HttpStatusCode.OK;
                         break;
