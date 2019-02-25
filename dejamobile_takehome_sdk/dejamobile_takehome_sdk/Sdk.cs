@@ -56,7 +56,7 @@ namespace dejamobile_takehome_sdk
             try
             {
                 HttpResponseMessage rsp = await customHttpClient.performRequest(DejaMobileHttpClient.Request.createUser, new Models.UserModel(userName, password, firstName, lastName, phoneNumber));
-                if (rsp.StatusCode != System.Net.HttpStatusCode.OK)
+                if (rsp.StatusCode == System.Net.HttpStatusCode.OK)
                 {
                     return new TaskResult(true, TaskResult.TaskStatus.finished, null, "User successfully created");
                 }
@@ -76,12 +76,14 @@ namespace dejamobile_takehome_sdk
         public async Task<TaskResult> ConnectUser(string userName, string password)
         {
             HttpResponseMessage rsp = await customHttpClient.performRequest(DejaMobileHttpClient.Request.logUser, new Models.UserModel(userName, password));
-            if (rsp.StatusCode != System.Net.HttpStatusCode.OK)
+            if (rsp.StatusCode == System.Net.HttpStatusCode.OK)
             {
+                onUserConnected();
                 return new TaskResult(true, TaskResult.TaskStatus.finished, null, "User successfully connected");
             }
             else
             {
+                onUserNotConnected();
                 return new TaskResult(false, TaskResult.TaskStatus.finished, null, "ERROR while connecting user : " + rsp.StatusCode.ToString());
             }
         }
@@ -92,7 +94,7 @@ namespace dejamobile_takehome_sdk
                 return new TaskResult(false, TaskResult.TaskStatus.finished, null, "SDK ERROR : user not connected. Please connect user before trying to use this method");
 
             HttpResponseMessage rsp = await customHttpClient.performRequest(DejaMobileHttpClient.Request.addCard, new Models.CardModel(ownerName, expDate, crypto));
-            if (rsp.StatusCode != System.Net.HttpStatusCode.Created)
+            if (rsp.StatusCode == System.Net.HttpStatusCode.Created)
             {
                 return new TaskResult(true, TaskResult.TaskStatus.finished, null, "Card successfully added"); //TODO : add card should allow sdk to get a digitized card
             }

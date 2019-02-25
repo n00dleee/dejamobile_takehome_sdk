@@ -9,8 +9,8 @@ namespace UnitTestSdk
     [TestClass]
     public class UsersUnitTests
     {
-        string testUser = "nicolas";
-        string testUserPassword = "password";
+        public static string testUser = "nicolas";
+        public static string testUserPassword = "password";
 
         [TestMethod]
         public void CreateUser()
