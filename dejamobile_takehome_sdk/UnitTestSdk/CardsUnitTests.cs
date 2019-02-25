@@ -25,5 +25,17 @@ namespace UnitTestSdk
             //assert
             Assert.IsTrue(result.result);
         }
+
+        [TestMethod]
+        public void getCardList()
+        {
+
+        }
+
+        [TestMethod]
+        public void deleteCard(dejamobile_takehome_sdk.Models.DigitizedCardModel digitizedCard)
+        {
+
+        }
     }
 }

@@ -18,7 +18,6 @@ namespace UnitTestSdk
             //arrange
             Sdk sdk = new Sdk();
 
-
             //act
             Task<TaskResult> temp = sdk.CreateUser(testUser, testUserPassword);
             TaskResult result = temp.Result;
