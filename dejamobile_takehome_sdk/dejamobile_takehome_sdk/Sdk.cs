@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Net.Http;
+using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -20,9 +21,18 @@ namespace dejamobile_takehome_sdk
             dbManager = new Services.DatabaseManager.VolatileFakeDigitizedCardDataBase();
         }
 
-        private bool init()
+        private TaskResult init()
         {
-            return dbManager.connect();
+            dbManager.connect();
+
+            if (dbManager.isConnected)
+            {
+                return new TaskResult(true, TaskResult.TaskStatus.finished, null,"SDK is ready");
+            }
+            else
+            {
+                return new TaskResult(false, TaskResult.TaskStatus.finished, null, "SDK ERROR : database is unreachable. Please ensure Database is running");
+            }
         }
 
         private void onUserConnected()
@@ -41,95 +51,115 @@ namespace dejamobile_takehome_sdk
             return status.ToString();
         }
 
-        public async Task<bool> CreateUser(string user, string password)
+        public async Task<TaskResult> CreateUser(string userName, string password, string firstName ="", string lastName = "", string phoneNumber = "")
         {
-            HttpResponseMessage rsp = await customHttpClient.performRequest(DejaMobileHttpClient.Request.createUser, new Models.UserModel(user, password));
-            if (rsp.StatusCode != System.Net.HttpStatusCode.OK)
+            try
             {
-                return true;
+                HttpResponseMessage rsp = await customHttpClient.performRequest(DejaMobileHttpClient.Request.createUser, new Models.UserModel(userName, password, firstName, lastName, phoneNumber));
+                if (rsp.StatusCode != System.Net.HttpStatusCode.OK)
+                {
+                    return new TaskResult(true, TaskResult.TaskStatus.finished, null, "User successfully created");
+                }
+                else
+                {
+                    return new TaskResult(false, TaskResult.TaskStatus.finished, null, "ERROR while creating user : " + rsp.StatusCode.ToString());
+                }
             }
-            else
+            catch(Exception e)
             {
-                return false;
+                Console.WriteLine(e);
+                return new TaskResult(false, TaskResult.TaskStatus.finished, null, "ERROR internal SDK exception while processing CREATE USER request");
             }
+
         }
 
-        public async Task<bool> ConnectUser(string user, string password)
+        public async Task<TaskResult> ConnectUser(string user, string password)
         {
             HttpResponseMessage rsp = await customHttpClient.performRequest(DejaMobileHttpClient.Request.logUser, new Models.UserModel(user, password));
             if (rsp.StatusCode != System.Net.HttpStatusCode.OK)
             {
-                return true;
+                return new TaskResult(true, TaskResult.TaskStatus.finished, null, "User successfully connected");
             }
             else
             {
-                return false;
+                return new TaskResult(false, TaskResult.TaskStatus.finished, null, "ERROR while connecting user : " + rsp.StatusCode.ToString());
             }
         }
 
-        public async Task<bool> AddCard(string ownerName, string cardNumber, string expDate, string crypto)
+        public async Task<TaskResult> AddCard(string ownerName, string cardNumber, string expDate, string crypto)
         {
             if (status != clientStatus.connected)
-                return false; //ERROR not authorized to implement
+                return new TaskResult(false, TaskResult.TaskStatus.finished, null, "SDK ERROR : user not connected. Please connect user before trying to use this method");
 
             HttpResponseMessage rsp = await customHttpClient.performRequest(DejaMobileHttpClient.Request.addCard, new Models.CardModel(ownerName, expDate, crypto));
             if (rsp.StatusCode != System.Net.HttpStatusCode.Created)
             {
-                return true;
+                return new TaskResult(true, TaskResult.TaskStatus.finished, null, "Card successfully added"); //TODO : add card should allow sdk to get a digitized card
             }
             else
             {
-                return false;
+                return new TaskResult(false, TaskResult.TaskStatus.finished, null, "SDK ERROR : error while trying to add a card"); //TODO : specific error handler
             }
         }
 
-        public List<Models.DigitizedCardModel> getDigitizedCardsList()
+        public TaskResult getDigitizedCardsList()
         {
             if (status != clientStatus.connected)
-                return null; //ERROR not authorized to implement
+                return new TaskResult(false, TaskResult.TaskStatus.finished, null, "SDK ERROR : user not connected. Please connect user before trying to use this method");
 
             if (dbManager.isConnected != true)
-                return null; //ERROR db not found to implement
+                return new TaskResult(false, TaskResult.TaskStatus.finished, null, "SDK ERROR : database is not accessible. All data management is disabled until database is back on track. Please retry to use init() method");
 
-            return dbManager.getDigitizedCardList();
+            List<Models.DigitizedCardModel> cardList = dbManager.getDigitizedCardList();
+            if (cardList != null)
+                return new TaskResult(true, TaskResult.TaskStatus.finished, cardList, "Here is the list of locally stored digitized cards");
+            else
+                return new TaskResult(false, TaskResult.TaskStatus.finished, null, "SDK ERROR : error while trying to get digitized cards");
         }
 
-        public bool deleteDigitizedCard(Models.DigitizedCardModel digitizedCard)
+        public TaskResult deleteDigitizedCard(Models.DigitizedCardModel digitizedCard)
         {
             if (status != clientStatus.connected)
-                return false; //ERROR not authorized to implement
+                return new TaskResult(false, TaskResult.TaskStatus.finished, null, "SDK ERROR : user not connected. Please connect user before trying to use this method");
 
             if (dbManager.isConnected != true)
-                return false; //ERROR db not found to implement
+                return new TaskResult(false, TaskResult.TaskStatus.finished, null, "SDK ERROR : database is not accessible. All data management is disabled until database is back on track. Please retry to use init() method");
 
-            return dbManager.deleteDigitizedCard(digitizedCard);
+            if (dbManager.deleteDigitizedCard(digitizedCard))
+                return new TaskResult(true, TaskResult.TaskStatus.finished, null, "Card successfully deleted");
+            else
+                return new TaskResult(false, TaskResult.TaskStatus.finished, null, "SDK ERROR : error while deleting digitized card");
         }
 
-        public async Task<bool> getPaymentsHistory()
+        public async Task<TaskResult> getPaymentsHistory()
         {
             if (status != clientStatus.connected)
-                return false; //ERROR not authorized to implement
+                return new TaskResult(false, TaskResult.TaskStatus.finished, null, "SDK ERROR : user not connected. Please connect user before trying to use this method");
+
+            if (dbManager.isConnected != true)
+                return new TaskResult(false, TaskResult.TaskStatus.finished, null, "SDK ERROR : database is not accessible. All data management is disabled until database is back on track. Please retry to use init() method");
 
             HttpResponseMessage rsp = await customHttpClient.performRequest(DejaMobileHttpClient.Request.getStats, null);
             if (rsp.StatusCode != System.Net.HttpStatusCode.OK)
             {
-                return true;
+                return new TaskResult(true, TaskResult.TaskStatus.finished, null, "Here is the payment history for the connected user");
             }
             else
             {
-                return false;
+                return new TaskResult(false, TaskResult.TaskStatus.finished, null, "SDK ERROR : error while trying to get payment history : " + rsp.StatusCode);
             }
         }
     }
 
     public enum clientStatus { unknown, disconnected, connected }
+
     public class DejaMobileHttpClient
     {
         HttpClient httpClient;
 
         public DejaMobileHttpClient()
         {
-
+            httpClient = new HttpClient();
         }
 
         public async Task<HttpResponseMessage> performRequest(Request requestType, Object payload)
@@ -141,23 +171,27 @@ namespace dejamobile_takehome_sdk
             var httpContent = new StringContent(stringPayload, Encoding.UTF8, "application/json");
 
             HttpResponseMessage response;
-
-            switch (requestType)
+            ApiRequest request = new ApiRequest(requestType);
+            bool result;
+            switch (request.getMethod()) //HttpMethod collection is not considered as "constant", cannot switch on it :(
             {
-                case Request.createUser:
-                    //post method
-                    response = await httpClient.PostAsync(ApiUrl.user, httpContent);
-                    response.EnsureSuccessStatusCode();
-                    break;
-                case Request.logUser:
-                    response = await
-                    break;
+                case Method.post:
+                    response = await httpClient.PostAsync(request.getUrl(), httpContent);
+                    result = request.ensureStatusCodeMatchesExpectedOne(response.StatusCode);
+                    //TODO Clarify who handles the error
+                    return response;
+                case Method.delete:
+                    response = await httpClient.DeleteAsync(request.getUrl());
+                    result = request.ensureStatusCodeMatchesExpectedOne(response.StatusCode);
+                    //TODO Clarify who handles the error
+                    return response;
+                case Method.get: //default case will be GET method
                 default:
-                    break;
+                    response = await httpClient.GetAsync(request.getUrl());
+                    result = request.ensureStatusCodeMatchesExpectedOne(response.StatusCode);
+                    //TODO Clarify who handles the error
+                    return response;
             }
-
-
-            return response;
         }
 
         public enum Request {
@@ -167,19 +201,29 @@ namespace dejamobile_takehome_sdk
             getStats
         }
 
+        public enum Method // Net.HttpMethod objects are not considered as constant and cannot be switched on :( This enum solves this issue
+        {
+            post,
+            get,
+            delete,
+            put,
+            patch
+        }
+
         public class ApiRequest
         {
             private string baseUrl;
             private string urlSuffix;
             private string urlComplete;
-            private HttpMethod method;
+            private Method method; // "Method" type from custom enum is used instead of Net.method
+            private System.Net.HttpStatusCode expectedStatusCode;
 
             public ApiRequest(Request requestType)
             {
                 buildRequest(requestType);
             }
 
-            public HttpMethod getMethod()
+            public Method getMethod()
             {
                 return this.method;
             }
@@ -189,6 +233,11 @@ namespace dejamobile_takehome_sdk
                 return this.urlComplete;
             }
 
+            public System.Net.HttpStatusCode getExpectedStatusCode()
+            {
+                return expectedStatusCode;
+            }
+
             private void buildRequest(Request requestType)
             {
                 switch (requestType)
@@ -196,18 +245,22 @@ namespace dejamobile_takehome_sdk
                     case Request.createUser:
                         urlComplete = buildCompleteUrl(Models.DejamobileApiModel.users);
                         method = getHttpMethodFromRequestType(requestType);
+                        expectedStatusCode = System.Net.HttpStatusCode.Created;
                         break;
                     case Request.logUser:
                         urlComplete = buildCompleteUrl(Models.DejamobileApiModel.users);
                         method = getHttpMethodFromRequestType(requestType);
+                        expectedStatusCode = System.Net.HttpStatusCode.OK;
                         break;
                     case Request.addCard:
                         urlComplete = buildCompleteUrl(Models.DejamobileApiModel.digitizedCard);
                         method = getHttpMethodFromRequestType(requestType);
+                        expectedStatusCode = System.Net.HttpStatusCode.Created;
                         break;
                     case Request.getStats:
                         urlComplete = buildCompleteUrl(Models.DejamobileApiModel.statistics);
                         method = getHttpMethodFromRequestType(requestType);
+                        expectedStatusCode = System.Net.HttpStatusCode.OK;
                         break;
                     default:
                         break;
@@ -220,22 +273,48 @@ namespace dejamobile_takehome_sdk
                 return Models.DejamobileApiModel.backendBaseUrl + suffix;
             }
 
-            private HttpMethod getHttpMethodFromRequestType(Request requestType)
+            private Method getHttpMethodFromRequestType(Request requestType)
             {
                 switch (requestType)
                 {
                     case Request.createUser:
-                        return HttpMethod.Post;
+                        return Method.post;
                     case Request.logUser:
-                        return HttpMethod.Post;
+                        return Method.post;
                     case Request.addCard:
-                        return HttpMethod.Post;
+                        return Method.post;
                     case Request.getStats:
-                        return HttpMethod.Get;
+                        return Method.get;
                     default:
                         throw new Exception("Exception in getHttpMethodFromRequestType in switch case, request type is not handled yet : " + requestType.ToString());
                 }
             }
+
+            public bool ensureStatusCodeMatchesExpectedOne(HttpStatusCode receivedCode)
+            {
+                if (receivedCode != expectedStatusCode)
+                    return false;
+                else
+                    return true;
+            }
+        }
+    }
+
+    public class TaskResult
+    {
+        public bool result;
+        public TaskStatus status;
+        public object payload;
+        public string message;
+
+        public enum TaskStatus { pending, finished }
+
+        public TaskResult(bool result, TaskStatus status = TaskStatus.finished, object payload = null, string message = "")
+        {
+            this.result = result;
+            this.status = status;
+            this.payload = payload;
+            this.message = message;
         }
     }
 }
