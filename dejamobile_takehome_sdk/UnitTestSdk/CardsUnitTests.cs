@@ -21,7 +21,7 @@ namespace UnitTestSdk
             Assert.IsTrue(result.result);
 
             //act
-            temp = sdk.AddCard("nicolas debeaupte", "1111222333444", "01/25", "123");
+            temp = sdk.AddCard("nicolas debeaupte", "4143869183957495", "01/25", "123");
             result = temp.Result;
 
             //ASSERTS
