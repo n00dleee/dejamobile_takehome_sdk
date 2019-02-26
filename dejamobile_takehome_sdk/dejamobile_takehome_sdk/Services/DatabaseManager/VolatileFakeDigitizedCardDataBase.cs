@@ -8,7 +8,7 @@ namespace dejamobile_takehome_sdk.Services.DatabaseManager
     class VolatileFakeDigitizedCardDataBase : IDatabaseManager
     {
         bool _isConnected = false;
-        List<Models.DigitizedCardModel> digitizedCardList;
+        List<Models.CardModel> digitizedCardList;
 
         public bool isConnected
         {
@@ -17,28 +17,30 @@ namespace dejamobile_takehome_sdk.Services.DatabaseManager
 
         public VolatileFakeDigitizedCardDataBase()
         {
-            digitizedCardList = new List<DigitizedCardModel>();
+            digitizedCardList = new List<CardModel>();
         }
 
-        public bool deleteDigitizedCard(DigitizedCardModel digitizedCard)
+        public bool deleteDigitizedCard(string uid)
         {
-            try
+            foreach(Models.CardModel card in digitizedCardList)
             {
-                digitizedCardList.Remove(digitizedCard);
-                return true;
+                if(card.uid == uid)
+                {
+                    digitizedCardList.Remove(card);
+                    return true;
+                }
             }
-            catch
-            {
-                return false;
-            }
+
+            //if we reach this line, uid was not found
+            return false;
         }
 
-        public List<DigitizedCardModel> getDigitizedCardList()
+        public List<CardModel> getDigitizedCardList()
         {
             return digitizedCardList;
         }
 
-        public bool storeDigitizedCard(DigitizedCardModel digitizedCard)
+        public bool storeDigitizedCard(CardModel digitizedCard)
         {
             try
             {

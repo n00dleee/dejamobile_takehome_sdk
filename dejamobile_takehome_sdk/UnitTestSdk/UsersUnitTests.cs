@@ -31,6 +31,7 @@ namespace UnitTestSdk
         {
             //arrange
             Sdk sdk = new Sdk();
+            CreateUser();
 
             //act
             Task<TaskResult> temp = sdk.ConnectUser(testUser, testUserPassword);

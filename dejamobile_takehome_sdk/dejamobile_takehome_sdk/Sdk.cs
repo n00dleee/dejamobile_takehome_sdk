@@ -19,9 +19,10 @@ namespace dejamobile_takehome_sdk
             status = false;
             customHttpClient = new DejaMobileHttpClient();
             dbManager = new Services.DatabaseManager.VolatileFakeDigitizedCardDataBase();
+            init();
         }
 
-        private TaskResult init()
+        public TaskResult init()
         {
             dbManager.connect();
 
@@ -56,7 +57,7 @@ namespace dejamobile_takehome_sdk
             try
             {
                 HttpResponseMessage rsp = await customHttpClient.performRequest(DejaMobileHttpClient.Request.createUser, new Models.UserModel(userName, password, firstName, lastName, phoneNumber));
-                if (rsp.StatusCode == System.Net.HttpStatusCode.OK)
+                if (rsp.StatusCode == System.Net.HttpStatusCode.Created)
                 {
                     return new TaskResult(true, TaskResult.TaskStatus.finished, null, "User successfully created");
                 }
@@ -88,15 +89,27 @@ namespace dejamobile_takehome_sdk
             }
         }
 
-        public async Task<TaskResult> AddCard(string ownerName, string cardNumber, string expDate, string crypto)
+        public async Task<TaskResult> AddCard(string ownerName, string cardNumber, string expDate, string crypto, string description ="")
         {
             if (!status)
                 return new TaskResult(false, TaskResult.TaskStatus.finished, null, "SDK ERROR : user not connected. Please connect user before trying to use this method");
 
-            HttpResponseMessage rsp = await customHttpClient.performRequest(DejaMobileHttpClient.Request.addCard, new Models.CardModel(ownerName, expDate, crypto));
+            HttpResponseMessage rsp = await customHttpClient.performRequest(DejaMobileHttpClient.Request.addCard, new Models.CardModel(ownerName, cardNumber, expDate, crypto));
             if (rsp.StatusCode == System.Net.HttpStatusCode.Created)
             {
-                return new TaskResult(true, TaskResult.TaskStatus.finished, null, "Card successfully added"); //TODO : add card should allow sdk to get a digitized card
+                string json = await DejaMobileHttpClient.getJsonFromHttpResponse(rsp);
+                Models.CardModel card = JsonConvert.DeserializeObject<Models.CardModel>(json);
+                //add production date & description
+                if (description != "")
+                    card.description = description;
+                card.productionDate = DateTime.Now.ToString();
+                card.uid = Guid.NewGuid().ToString();
+
+                if(storeCardInDb(card))
+                    return new TaskResult(true, TaskResult.TaskStatus.finished, card, "Card successfully added");
+                else
+                    return new TaskResult(false, TaskResult.TaskStatus.finished, card, "SDK ERROR : Card successfully added but an error has been thrown while trying to store card in database");
+
             }
             else
             {
@@ -112,14 +125,14 @@ namespace dejamobile_takehome_sdk
             if (dbManager.isConnected != true)
                 return new TaskResult(false, TaskResult.TaskStatus.finished, null, "SDK ERROR : database is not accessible. All data management is disabled until database is back on track. Please retry to use init() method");
 
-            List<Models.DigitizedCardModel> cardList = dbManager.getDigitizedCardList();
+            List<Models.CardModel> cardList = dbManager.getDigitizedCardList();
             if (cardList != null)
                 return new TaskResult(true, TaskResult.TaskStatus.finished, cardList, "Here is the list of locally stored digitized cards");
             else
                 return new TaskResult(false, TaskResult.TaskStatus.finished, null, "SDK ERROR : error while trying to get digitized cards");
         }
 
-        public TaskResult deleteDigitizedCard(Models.DigitizedCardModel digitizedCard)
+        public TaskResult deleteDigitizedCard(string uid)
         {
             if (!status)
                 return new TaskResult(false, TaskResult.TaskStatus.finished, null, "SDK ERROR : user not connected. Please connect user before trying to use this method");
@@ -127,7 +140,7 @@ namespace dejamobile_takehome_sdk
             if (dbManager.isConnected != true)
                 return new TaskResult(false, TaskResult.TaskStatus.finished, null, "SDK ERROR : database is not accessible. All data management is disabled until database is back on track. Please retry to use init() method");
 
-            if (dbManager.deleteDigitizedCard(digitizedCard))
+            if (dbManager.deleteDigitizedCard(uid))
                 return new TaskResult(true, TaskResult.TaskStatus.finished, null, "Card successfully deleted");
             else
                 return new TaskResult(false, TaskResult.TaskStatus.finished, null, "SDK ERROR : error while deleting digitized card");
@@ -150,6 +163,16 @@ namespace dejamobile_takehome_sdk
             {
                 return new TaskResult(false, TaskResult.TaskStatus.finished, null, "SDK ERROR : error while trying to get payment history : " + rsp.StatusCode);
             }
+        }
+
+        private bool storeCardInDb(Models.CardModel card)
+        {
+            return dbManager.storeDigitizedCard(card);
+        }
+
+        private bool deleteCardFromDb(string uid)
+        {
+            return dbManager.deleteDigitizedCard(uid);
         }
     }
 
@@ -299,6 +322,12 @@ namespace dejamobile_takehome_sdk
                 else
                     return true;
             }
+        }
+
+        public static async Task<string> getJsonFromHttpResponse(HttpResponseMessage response)
+        {
+            string responseBody = await response.Content.ReadAsStringAsync();
+            return responseBody;
         }
     }
 

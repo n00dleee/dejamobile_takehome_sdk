@@ -8,8 +8,8 @@ namespace dejamobile_takehome_sdk.Services.DatabaseManager
     {
         bool isConnected { get; }
         bool connect();
-        bool storeDigitizedCard(Models.DigitizedCardModel digitizedCard);
-        List<Models.DigitizedCardModel> getDigitizedCardList();
-        bool deleteDigitizedCard(Models.DigitizedCardModel digitizedCard);
+        bool storeDigitizedCard(Models.CardModel digitizedCard);
+        List<Models.CardModel> getDigitizedCardList();
+        bool deleteDigitizedCard(string uid);
     }
 }
