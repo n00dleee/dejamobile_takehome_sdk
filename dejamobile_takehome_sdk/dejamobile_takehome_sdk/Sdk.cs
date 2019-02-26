@@ -5,6 +5,7 @@ using System.Net.Http;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
+using System.Net.Http.Headers;
 
 namespace dejamobile_takehome_sdk
 {
@@ -36,9 +37,10 @@ namespace dejamobile_takehome_sdk
             }
         }
 
-        private void onUserConnected()
+        private void onUserConnected(string token)
         {
             status = true;
+            customHttpClient.storeAuthJwt(token);
         }
 
         private void onUserNotConnected()
@@ -79,7 +81,9 @@ namespace dejamobile_takehome_sdk
             HttpResponseMessage rsp = await customHttpClient.performRequest(DejaMobileHttpClient.Request.logUser, new Models.UserModel(userName, password));
             if (rsp.StatusCode == System.Net.HttpStatusCode.OK)
             {
-                onUserConnected();
+                string json = await DejaMobileHttpClient.getJsonFromHttpResponse(rsp);
+                Models.AuthJwtModel authJwt = JsonConvert.DeserializeObject<Models.AuthJwtModel>(json);
+                onUserConnected(authJwt.token);
                 return new TaskResult(true, TaskResult.TaskStatus.finished, null, "User successfully connected");
             }
             else
@@ -185,6 +189,11 @@ namespace dejamobile_takehome_sdk
         public DejaMobileHttpClient()
         {
             httpClient = new HttpClient();
+        }
+
+        public void storeAuthJwt(string jwt)
+        {
+            httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", jwt);
         }
 
         public async Task<HttpResponseMessage> performRequest(Request requestType, Object payload)
