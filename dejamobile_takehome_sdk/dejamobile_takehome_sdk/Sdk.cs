@@ -185,6 +185,7 @@ namespace dejamobile_takehome_sdk
     public class DejaMobileHttpClient
     {
         HttpClient httpClient;
+        string jwt;
 
         public DejaMobileHttpClient()
         {
@@ -194,6 +195,7 @@ namespace dejamobile_takehome_sdk
         public void storeAuthJwt(string jwt)
         {
             httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", jwt);
+            this.jwt = jwt;
         }
 
         public async Task<HttpResponseMessage> performRequest(Request requestType, Object payload)
@@ -206,6 +208,7 @@ namespace dejamobile_takehome_sdk
 
             HttpResponseMessage response;
             ApiRequest request = new ApiRequest(requestType);
+
             bool result;
             switch (request.getMethod()) //HttpMethod collection is not considered as "constant", cannot switch on it :(
             {

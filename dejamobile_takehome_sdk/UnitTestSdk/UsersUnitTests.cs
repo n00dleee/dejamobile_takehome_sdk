@@ -9,8 +9,8 @@ namespace UnitTestSdk
     [TestClass]
     public class UsersUnitTests
     {
-        public static string testUser = "nicolas";
-        public static string testUserPassword = "password";
+        public static string testUser = "testUser";
+        public static string testUserPassword = "testPassword";
 
         [TestMethod]
         public void CreateUser()
@@ -37,12 +37,11 @@ namespace UnitTestSdk
             Task<TaskResult> temp = sdk.ConnectUser(testUser, testUserPassword);
             TaskResult result = temp.Result;
 
-            //assert
+            //ASSERTS
             Assert.IsTrue(result.result);
 
             //ensure user is properly connected
             Assert.IsTrue(sdk.getStatus());
-
         }
     }
 }

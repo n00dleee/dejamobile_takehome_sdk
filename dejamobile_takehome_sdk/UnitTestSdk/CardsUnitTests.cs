@@ -12,17 +12,22 @@ namespace UnitTestSdk
     {
         Sdk sdk = new Sdk();
 
+        public void init()
+        {
+            Task<TaskResult> temp = sdk.CreateUser(UsersUnitTests.testUser, UsersUnitTests.testUserPassword);
+
+            temp = sdk.ConnectUser(UsersUnitTests.testUser, UsersUnitTests.testUserPassword);
+            TaskResult result = temp.Result;
+        }
+
         [TestMethod]
         public void AddCard()
         {
-            //arrange
-            Task<TaskResult> temp = sdk.ConnectUser(UsersUnitTests.testUser, UsersUnitTests.testUserPassword);
-            TaskResult result = temp.Result;
-            Assert.IsTrue(result.result);
+            init();
 
             //act
-            temp = sdk.AddCard("nicolas debeaupte", "4143869183957495", "01/25", "123");
-            result = temp.Result;
+            Task<TaskResult> temp = sdk.AddCard("nicolas debeaupte", "4143869183957495", "01/25", "123");
+            TaskResult result = temp.Result;
 
             //ASSERTS
             //ensure result if true
