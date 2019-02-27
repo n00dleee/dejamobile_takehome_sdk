@@ -10,19 +10,26 @@ namespace UnitTestSdk
     [TestClass]
     public class CardsUnitTests
     {
-        Sdk sdk = new Sdk();
+        Sdk sdk = new Sdk(true);
+        dejamobile_takehome_sdk.Models.UserModel user;
+
+        public void init()
+        {
+            user = new dejamobile_takehome_sdk.Models.UserModel(UsersUnitTests.testUser, UsersUnitTests.testUserPassword);
+            Task<TaskResult> temp = sdk.CreateUser(user);
+
+            temp = sdk.ConnectUser(user);
+            TaskResult result = temp.Result;
+        }
 
         [TestMethod]
         public void AddCard()
         {
-            //arrange
-            Task<TaskResult> temp = sdk.ConnectUser(UsersUnitTests.testUser, UsersUnitTests.testUserPassword);
-            TaskResult result = temp.Result;
-            Assert.IsTrue(result.result);
+            init();
 
             //act
-            temp = sdk.AddCard("nicolas debeaupte", "4143869183957495", "01/25", "123");
-            result = temp.Result;
+            Task<TaskResult> temp = sdk.AddCard("nicolas debeaupte", "4143869183957495", "01/25", "123");
+            TaskResult result = temp.Result;
 
             //ASSERTS
             //ensure result if true
