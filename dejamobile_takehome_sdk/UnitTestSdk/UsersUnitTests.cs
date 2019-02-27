@@ -12,14 +12,15 @@ namespace UnitTestSdk
         Sdk sdk = new Sdk(true);
         public static string testUser = "testUser";
         public static string testUserPassword = "testPassword";
+        dejamobile_takehome_sdk.Models.UserModel user;
 
         [TestMethod]
         public void CreateUser()
         {
             //arrange
-            
+            user = new dejamobile_takehome_sdk.Models.UserModel(UsersUnitTests.testUser, UsersUnitTests.testUserPassword);
             //act
-            Task<TaskResult> temp = sdk.CreateUser(testUser, testUserPassword);
+            Task<TaskResult> temp = sdk.CreateUser(user);
             TaskResult result = temp.Result;
 
             //assert
@@ -31,9 +32,10 @@ namespace UnitTestSdk
         {
             //arrange
             CreateUser();
+            user = new dejamobile_takehome_sdk.Models.UserModel(UsersUnitTests.testUser, UsersUnitTests.testUserPassword);
 
             //act
-            Task<TaskResult> temp = sdk.ConnectUser(testUser, testUserPassword);
+            Task<TaskResult> temp = sdk.ConnectUser(user);
             TaskResult result = temp.Result;
 
             //ASSERTS

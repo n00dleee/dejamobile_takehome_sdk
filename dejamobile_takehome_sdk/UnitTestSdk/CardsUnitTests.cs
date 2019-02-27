@@ -11,12 +11,14 @@ namespace UnitTestSdk
     public class CardsUnitTests
     {
         Sdk sdk = new Sdk(true);
+        dejamobile_takehome_sdk.Models.UserModel user;
 
         public void init()
         {
-            Task<TaskResult> temp = sdk.CreateUser(UsersUnitTests.testUser, UsersUnitTests.testUserPassword);
+            user = new dejamobile_takehome_sdk.Models.UserModel(UsersUnitTests.testUser, UsersUnitTests.testUserPassword);
+            Task<TaskResult> temp = sdk.CreateUser(user);
 
-            temp = sdk.ConnectUser(UsersUnitTests.testUser, UsersUnitTests.testUserPassword);
+            temp = sdk.ConnectUser(user);
             TaskResult result = temp.Result;
         }
 

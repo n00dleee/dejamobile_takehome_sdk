@@ -39,11 +39,11 @@ namespace dejamobile_takehome_sdk
 
             if (dbManager.isConnected)
             {
-                return new TaskResult(true, TaskResult.TaskStatus.finished, null,"SDK is ready");
+                return new TaskResult(TaskResult.TaskName.startup, true, TaskResult.TaskStatus.finished, null,"SDK is ready");
             }
             else
             {
-                return new TaskResult(false, TaskResult.TaskStatus.finished, null, "SDK ERROR : database is unreachable. Please ensure Database is running");
+                return new TaskResult(TaskResult.TaskName.startup, false, TaskResult.TaskStatus.finished, null, "SDK ERROR : database is unreachable. Please ensure Database is running");
             }
         }
 
@@ -72,17 +72,17 @@ namespace dejamobile_takehome_sdk
                 HttpResponseMessage rsp = await customHttpClient.performRequest(DejaMobileHttpClient.Request.createUser, user);
                 if (rsp.StatusCode == System.Net.HttpStatusCode.Created)
                 {
-                    return new TaskResult(true, TaskResult.TaskStatus.finished, null, "User successfully created");
+                    return new TaskResult(TaskResult.TaskName.createUser, true, TaskResult.TaskStatus.finished, null, "User successfully created");
                 }
                 else
                 {
-                    return new TaskResult(false, TaskResult.TaskStatus.finished, null, "ERROR while creating user : " + rsp.StatusCode.ToString());
+                    return new TaskResult(TaskResult.TaskName.createUser, false, TaskResult.TaskStatus.finished, null, "ERROR while creating user : " + rsp.StatusCode.ToString());
                 }
             }
             catch(Exception e)
             {
                 Console.WriteLine(e);
-                return new TaskResult(false, TaskResult.TaskStatus.finished, null, "ERROR internal SDK exception while processing CREATE USER request");
+                return new TaskResult(TaskResult.TaskName.createUser, false, TaskResult.TaskStatus.finished, null, "ERROR internal SDK exception while processing CREATE USER request");
             }
 
         }
@@ -95,19 +95,19 @@ namespace dejamobile_takehome_sdk
                 string json = await DejaMobileHttpClient.getJsonFromHttpResponse(rsp);
                 Models.AuthJwtModel authJwt = JsonConvert.DeserializeObject<Models.AuthJwtModel>(json);
                 onUserConnected(user, authJwt.token);
-                return new TaskResult(true, TaskResult.TaskStatus.finished, null, "User successfully connected");
+                return new TaskResult(TaskResult.TaskName.logUser, true, TaskResult.TaskStatus.finished, null, "User successfully connected");
             }
             else
             {
                 onUserNotConnected();
-                return new TaskResult(false, TaskResult.TaskStatus.finished, null, "ERROR while connecting user : " + rsp.StatusCode.ToString());
+                return new TaskResult(TaskResult.TaskName.logUser, false, TaskResult.TaskStatus.finished, null, "ERROR while connecting user : " + rsp.StatusCode.ToString());
             }
         }
 
         public async Task<TaskResult> AddCard(string ownerName, string cardNumber, string expDate, string crypto, string description ="")
         {
             if (!status)
-                return new TaskResult(false, TaskResult.TaskStatus.finished, null, "SDK ERROR : user not connected. Please connect user before trying to use this method");
+                return new TaskResult(TaskResult.TaskName.addCard, false, TaskResult.TaskStatus.finished, null, "SDK ERROR : user not connected. Please connect user before trying to use this method");
 
             HttpResponseMessage rsp = await customHttpClient.performRequest(DejaMobileHttpClient.Request.addCard, new Models.CardModel(ownerName, cardNumber, expDate, crypto));
             if (rsp.StatusCode == System.Net.HttpStatusCode.Created)
@@ -121,61 +121,61 @@ namespace dejamobile_takehome_sdk
                 card.uid = Guid.NewGuid().ToString();
 
                 if(storeCardInDb(card))
-                    return new TaskResult(true, TaskResult.TaskStatus.finished, card, "Card successfully added");
+                    return new TaskResult(TaskResult.TaskName.addCard, true, TaskResult.TaskStatus.finished, card, "Card successfully added");
                 else
-                    return new TaskResult(false, TaskResult.TaskStatus.finished, card, "SDK ERROR : Card successfully added but an error has been thrown while trying to store card in database");
+                    return new TaskResult(TaskResult.TaskName.addCard, false, TaskResult.TaskStatus.finished, card, "SDK ERROR : Card successfully added but an error has been thrown while trying to store card in database");
             }
             else
             {
-                return new TaskResult(false, TaskResult.TaskStatus.finished, null, "SDK ERROR : error while trying to add a card"); //TODO : specific error handler
+                return new TaskResult(TaskResult.TaskName.addCard, false, TaskResult.TaskStatus.finished, null, "SDK ERROR : error while trying to add a card"); //TODO : specific error handler
             }
         }
 
         public TaskResult getDigitizedCardsList()
         {
             if (!status)
-                return new TaskResult(false, TaskResult.TaskStatus.finished, null, "SDK ERROR : user not connected. Please connect user before trying to use this method");
+                return new TaskResult(TaskResult.TaskName.getCards, false, TaskResult.TaskStatus.finished, null, "SDK ERROR : user not connected. Please connect user before trying to use this method");
 
             if (dbManager.isConnected != true)
-                return new TaskResult(false, TaskResult.TaskStatus.finished, null, "SDK ERROR : database is not accessible. All data management is disabled until database is back on track. Please retry to use init() method");
+                return new TaskResult(TaskResult.TaskName.getCards, false, TaskResult.TaskStatus.finished, null, "SDK ERROR : database is not accessible. All data management is disabled until database is back on track. Please retry to use init() method");
 
             List<Models.CardModel> cardList = dbManager.getDigitizedCardList();
             if (cardList != null)
-                return new TaskResult(true, TaskResult.TaskStatus.finished, cardList, "Here is the list of locally stored digitized cards");
+                return new TaskResult(TaskResult.TaskName.getCards, true, TaskResult.TaskStatus.finished, cardList, "Here is the list of locally stored digitized cards");
             else
-                return new TaskResult(false, TaskResult.TaskStatus.finished, null, "SDK ERROR : error while trying to get digitized cards");
+                return new TaskResult(TaskResult.TaskName.getCards, false, TaskResult.TaskStatus.finished, null, "SDK ERROR : error while trying to get digitized cards");
         }
 
         public TaskResult deleteDigitizedCard(string uid)
         {
             if (!status)
-                return new TaskResult(false, TaskResult.TaskStatus.finished, null, "SDK ERROR : user not connected. Please connect user before trying to use this method");
+                return new TaskResult(TaskResult.TaskName.removeCard, false, TaskResult.TaskStatus.finished, null, "SDK ERROR : user not connected. Please connect user before trying to use this method");
 
             if (dbManager.isConnected != true)
-                return new TaskResult(false, TaskResult.TaskStatus.finished, null, "SDK ERROR : database is not accessible. All data management is disabled until database is back on track. Please retry to use init() method");
+                return new TaskResult(TaskResult.TaskName.removeCard, false, TaskResult.TaskStatus.finished, null, "SDK ERROR : database is not accessible. All data management is disabled until database is back on track. Please retry to use init() method");
 
             if (dbManager.deleteDigitizedCard(uid))
-                return new TaskResult(true, TaskResult.TaskStatus.finished, null, "Card successfully deleted");
+                return new TaskResult(TaskResult.TaskName.removeCard, true, TaskResult.TaskStatus.finished, null, "Card successfully deleted");
             else
-                return new TaskResult(false, TaskResult.TaskStatus.finished, null, "SDK ERROR : error while deleting digitized card");
+                return new TaskResult(TaskResult.TaskName.removeCard, false, TaskResult.TaskStatus.finished, null, "SDK ERROR : error while deleting digitized card");
         }
 
         public async Task<TaskResult> getPaymentsHistory()
         {
             if (!status)
-                return new TaskResult(false, TaskResult.TaskStatus.finished, null, "SDK ERROR : user not connected. Please connect user before trying to use this method");
+                return new TaskResult(TaskResult.TaskName.getHistory, false, TaskResult.TaskStatus.finished, null, "SDK ERROR : user not connected. Please connect user before trying to use this method");
 
             if (dbManager.isConnected != true)
-                return new TaskResult(false, TaskResult.TaskStatus.finished, null, "SDK ERROR : database is not accessible. All data management is disabled until database is back on track. Please retry to use init() method");
+                return new TaskResult(TaskResult.TaskName.getHistory, false, TaskResult.TaskStatus.finished, null, "SDK ERROR : database is not accessible. All data management is disabled until database is back on track. Please retry to use init() method");
 
             HttpResponseMessage rsp = await customHttpClient.performRequest(DejaMobileHttpClient.Request.getStats, null);
             if (rsp.StatusCode != System.Net.HttpStatusCode.OK)
             {
-                return new TaskResult(true, TaskResult.TaskStatus.finished, null, "Here is the payment history for the connected user");
+                return new TaskResult(TaskResult.TaskName.getHistory, true, TaskResult.TaskStatus.finished, null, "Here is the payment history for the connected user");
             }
             else
             {
-                return new TaskResult(false, TaskResult.TaskStatus.finished, null, "SDK ERROR : error while trying to get payment history : " + rsp.StatusCode);
+                return new TaskResult(TaskResult.TaskName.getHistory, false, TaskResult.TaskStatus.finished, null, "SDK ERROR : error while trying to get payment history : " + rsp.StatusCode);
             }
         }
 
@@ -476,15 +476,20 @@ namespace dejamobile_takehome_sdk
 
     public class TaskResult
     {
+        public TaskName name;
         public bool result;
         public TaskStatus status;
         public object payload;
         public string message;
 
         public enum TaskStatus { pending, finished }
+        public enum TaskName { createUser, logUser, addCard, removeCard, getCards, getHistory,
+            startup
+        }
 
-        public TaskResult(bool result, TaskStatus status = TaskStatus.finished, object payload = null, string message = "")
+        public TaskResult(TaskName name, bool result, TaskStatus status = TaskStatus.finished, object payload = null, string message = "")
         {
+            this.name = name;
             this.result = result;
             this.status = status;
             this.payload = payload;
