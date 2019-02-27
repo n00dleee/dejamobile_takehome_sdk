@@ -65,11 +65,11 @@ namespace dejamobile_takehome_sdk
             return status;
         }
 
-        public async Task<TaskResult> CreateUser(string userName, string password, string firstName ="", string lastName = "", string phoneNumber = "")
+        public async Task<TaskResult> CreateUser(Models.UserModel user)
         {
             try
             {
-                HttpResponseMessage rsp = await customHttpClient.performRequest(DejaMobileHttpClient.Request.createUser, new Models.UserModel(userName, password, firstName, lastName, phoneNumber));
+                HttpResponseMessage rsp = await customHttpClient.performRequest(DejaMobileHttpClient.Request.createUser, user);
                 if (rsp.StatusCode == System.Net.HttpStatusCode.Created)
                 {
                     return new TaskResult(true, TaskResult.TaskStatus.finished, null, "User successfully created");
@@ -87,9 +87,8 @@ namespace dejamobile_takehome_sdk
 
         }
 
-        public async Task<TaskResult> ConnectUser(string userName, string password)
+        public async Task<TaskResult> ConnectUser(Models.UserModel user)
         {
-            Models.UserModel user = new Models.UserModel(userName, password);
             HttpResponseMessage rsp = await customHttpClient.performRequest(DejaMobileHttpClient.Request.logUser, user);
             if (rsp.StatusCode == System.Net.HttpStatusCode.OK)
             {
@@ -125,7 +124,6 @@ namespace dejamobile_takehome_sdk
                     return new TaskResult(true, TaskResult.TaskStatus.finished, card, "Card successfully added");
                 else
                     return new TaskResult(false, TaskResult.TaskStatus.finished, card, "SDK ERROR : Card successfully added but an error has been thrown while trying to store card in database");
-
             }
             else
             {
@@ -212,8 +210,6 @@ namespace dejamobile_takehome_sdk
 
         public async Task<HttpResponseMessage> performRequest(Request requestType, Object payload)
         {
-            bool tokenRefreshHasAlreadyBeenAttempted = false;
-
             // Serialize our concrete class into a JSON String
             var stringPayload = JsonConvert.SerializeObject(payload);
 
@@ -225,9 +221,6 @@ namespace dejamobile_takehome_sdk
 
             bool result;
             bool tokenNeedsRefresh;
-
-            do
-            {
                 switch (request.getMethod()) //HttpMethod collection is not considered as "constant", cannot switch on it :(
                 {
                     case Method.post:
@@ -295,9 +288,6 @@ namespace dejamobile_takehome_sdk
                         else
                             return response;
                 }
-                Console.WriteLine("Retrying http request after having refreshed the token...");
-            } while (true);
-            
         }
 
         private async Task<bool> refreshToken()
