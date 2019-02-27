@@ -14,13 +14,23 @@ namespace dejamobile_takehome_sdk
         bool status;
         private DejaMobileHttpClient customHttpClient;
         private Services.DatabaseManager.IDatabaseManager dbManager;
+        private Models.UserModel currentUser;
+        private Config config;
 
-        public Sdk()
+        public Sdk(bool autoReconnectOnTokenExpiration)
         {
             status = false;
+            config = new Config(autoReconnectOnTokenExpiration);
             customHttpClient = new DejaMobileHttpClient();
             dbManager = new Services.DatabaseManager.VolatileFakeDigitizedCardDataBase();
             init();
+        }
+
+        //TODO remove
+        public void injectThisToken(Models.UserModel user, string token)
+        {
+            customHttpClient.storeAuthJwt(user, token);
+            status = true;
         }
 
         public TaskResult init()
@@ -37,10 +47,11 @@ namespace dejamobile_takehome_sdk
             }
         }
 
-        private void onUserConnected(string token)
+        private void onUserConnected(Models.UserModel currentUser, string token)
         {
             status = true;
-            customHttpClient.storeAuthJwt(token);
+            this.currentUser = currentUser;
+            customHttpClient.storeAuthJwt(currentUser, token);
         }
 
         private void onUserNotConnected()
@@ -78,12 +89,13 @@ namespace dejamobile_takehome_sdk
 
         public async Task<TaskResult> ConnectUser(string userName, string password)
         {
-            HttpResponseMessage rsp = await customHttpClient.performRequest(DejaMobileHttpClient.Request.logUser, new Models.UserModel(userName, password));
+            Models.UserModel user = new Models.UserModel(userName, password);
+            HttpResponseMessage rsp = await customHttpClient.performRequest(DejaMobileHttpClient.Request.logUser, user);
             if (rsp.StatusCode == System.Net.HttpStatusCode.OK)
             {
                 string json = await DejaMobileHttpClient.getJsonFromHttpResponse(rsp);
                 Models.AuthJwtModel authJwt = JsonConvert.DeserializeObject<Models.AuthJwtModel>(json);
-                onUserConnected(authJwt.token);
+                onUserConnected(user, authJwt.token);
                 return new TaskResult(true, TaskResult.TaskStatus.finished, null, "User successfully connected");
             }
             else
@@ -180,26 +192,28 @@ namespace dejamobile_takehome_sdk
         }
     }
 
-    public enum clientStatus { unknown, disconnected, connected }
-
     public class DejaMobileHttpClient
     {
         HttpClient httpClient;
         string jwt;
+        private Models.UserModel currentUser;
 
         public DejaMobileHttpClient()
         {
             httpClient = new HttpClient();
         }
 
-        public void storeAuthJwt(string jwt)
+        public void storeAuthJwt(Models.UserModel currentUser, string jwt)
         {
             httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", jwt);
             this.jwt = jwt;
+            this.currentUser = currentUser;
         }
 
         public async Task<HttpResponseMessage> performRequest(Request requestType, Object payload)
         {
+            bool tokenRefreshHasAlreadyBeenAttempted = false;
+
             // Serialize our concrete class into a JSON String
             var stringPayload = JsonConvert.SerializeObject(payload);
 
@@ -210,25 +224,142 @@ namespace dejamobile_takehome_sdk
             ApiRequest request = new ApiRequest(requestType);
 
             bool result;
-            switch (request.getMethod()) //HttpMethod collection is not considered as "constant", cannot switch on it :(
+            bool tokenNeedsRefresh;
+
+            do
             {
-                case Method.post:
-                    response = await httpClient.PostAsync(request.getUrl(), httpContent);
-                    result = request.ensureStatusCodeMatchesExpectedOne(response.StatusCode);
-                    //TODO Clarify who handles the error
-                    return response;
-                case Method.delete:
-                    response = await httpClient.DeleteAsync(request.getUrl());
-                    result = request.ensureStatusCodeMatchesExpectedOne(response.StatusCode);
-                    //TODO Clarify who handles the error
-                    return response;
-                case Method.get: //default case will be GET method
-                default:
-                    response = await httpClient.GetAsync(request.getUrl());
-                    result = request.ensureStatusCodeMatchesExpectedOne(response.StatusCode);
-                    //TODO Clarify who handles the error
-                    return response;
+                switch (request.getMethod()) //HttpMethod collection is not considered as "constant", cannot switch on it :(
+                {
+                    case Method.post:
+                        response = await httpClient.PostAsync(request.getUrl(), httpContent);
+                        result = request.ensureStatusCodeMatchesExpectedOne(response.StatusCode);
+                        tokenNeedsRefresh = await doesClientNeedTokenRefresh(response);
+                        if (tokenNeedsRefresh)
+                        {
+                            bool b = await refreshToken();
+                            if (b)
+                            {
+                                response = await retryRequest(request, payload);
+                                result = request.ensureStatusCodeMatchesExpectedOne(response.StatusCode);
+                                return response;
+                            }
+                            else
+                            {
+                                return response;
+                                //TODO : trigger some kind of event to notify SDK something is wrong with auth
+                            }
+                        }
+                        else
+                            return response;
+                    case Method.delete:
+                        response = await httpClient.DeleteAsync(request.getUrl());
+                        result = request.ensureStatusCodeMatchesExpectedOne(response.StatusCode);
+                        tokenNeedsRefresh = await doesClientNeedTokenRefresh(response);
+                        if (tokenNeedsRefresh)
+                        {
+                            bool b = await refreshToken();
+                            if (b)
+                            {
+                                response = await retryRequest(request, httpContent);
+                                result = request.ensureStatusCodeMatchesExpectedOne(response.StatusCode);
+                                return response;
+                            }
+                            else
+                            {
+                                return response;
+                                //TODO : trigger some kind of event to notify SDK something is wrong with auth
+                            }
+                        }
+                        else
+                            return response;
+                    case Method.get: //default case will be GET method
+                    default:
+                        response = await httpClient.GetAsync(request.getUrl());
+                        result = request.ensureStatusCodeMatchesExpectedOne(response.StatusCode);
+                        tokenNeedsRefresh = await doesClientNeedTokenRefresh(response);
+                        if (tokenNeedsRefresh)
+                        {
+                            bool b = await refreshToken();
+                            if (b)
+                            {
+                                response = await retryRequest(request, httpContent);
+                                result = request.ensureStatusCodeMatchesExpectedOne(response.StatusCode);
+                                return response;
+                            }
+                            else
+                            {
+                                return response;
+                                //TODO : trigger some kind of event to notify SDK something is wrong with auth
+                            }
+                        }
+                        else
+                            return response;
+                }
+                Console.WriteLine("Retrying http request after having refreshed the token...");
+            } while (true);
+            
+        }
+
+        private async Task<bool> refreshToken()
+        {
+            try
+            {
+                var stringPayload = JsonConvert.SerializeObject(currentUser);
+                var httpContent = new StringContent(stringPayload, Encoding.UTF8, "application/json");
+                HttpResponseMessage response = await httpClient.PostAsync(Models.DejamobileApiModel.backendBaseUrl + Models.DejamobileApiModel.login, httpContent);
+                if (response.StatusCode == HttpStatusCode.OK)
+                {
+                    string json = await getJsonFromHttpResponse(response);
+                    Models.AuthJwtModel authJwt = JsonConvert.DeserializeObject<Models.AuthJwtModel>(json);
+                    storeAuthJwt(currentUser, authJwt.token);
+                    Console.WriteLine("Token has been refreshed !");
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
             }
+            catch(Exception e)
+            {
+                Console.WriteLine("Exception while trying to refreshtoken : " + e.Message);
+                return false;
+            }
+        }
+
+        private async Task<HttpResponseMessage> retryRequest(ApiRequest apiRequest, Object payload)
+        {
+            HttpResponseMessage response;
+            bool result;
+
+            try
+            {
+                var stringPayload = JsonConvert.SerializeObject(payload);
+                var httpContent = new StringContent(stringPayload, Encoding.UTF8, "application/json");
+
+                switch (apiRequest.getMethod())
+                {
+                    case Method.post:
+                        response = await httpClient.PostAsync(apiRequest.getUrl(), httpContent);
+                        result = apiRequest.ensureStatusCodeMatchesExpectedOne(response.StatusCode);
+                        return response;
+
+                    case Method.delete:
+                        response = await httpClient.DeleteAsync(apiRequest.getUrl());
+                        result = apiRequest.ensureStatusCodeMatchesExpectedOne(response.StatusCode);
+                        return response;
+
+                    case Method.get:
+                    default:
+                        response = await httpClient.DeleteAsync(apiRequest.getUrl());
+                        result = apiRequest.ensureStatusCodeMatchesExpectedOne(response.StatusCode);
+                        return response;
+                }
+            }catch(Exception e)
+            {
+                Console.WriteLine("Exception while trying to retry http request " + e.Message);
+                return null;
+            }           
         }
 
         public enum Request {
@@ -340,6 +471,16 @@ namespace dejamobile_takehome_sdk
         {
             string responseBody = await response.Content.ReadAsStringAsync();
             return responseBody;
+        }
+
+        private async Task<bool> doesClientNeedTokenRefresh(HttpResponseMessage rsp)
+        {
+            string json = await getJsonFromHttpResponse(rsp);
+
+            if (rsp.StatusCode == HttpStatusCode.Unauthorized && json.Contains("jwt expired"))
+                return true;
+            else
+                return false;
         }
     }
 

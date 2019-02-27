@@ -10,7 +10,7 @@ namespace UnitTestSdk
     [TestClass]
     public class CardsUnitTests
     {
-        Sdk sdk = new Sdk();
+        Sdk sdk = new Sdk(true);
 
         public void init()
         {

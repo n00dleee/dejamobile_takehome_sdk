@@ -9,6 +9,7 @@ namespace UnitTestSdk
     [TestClass]
     public class UsersUnitTests
     {
+        Sdk sdk = new Sdk(true);
         public static string testUser = "testUser";
         public static string testUserPassword = "testPassword";
 
@@ -16,8 +17,7 @@ namespace UnitTestSdk
         public void CreateUser()
         {
             //arrange
-            Sdk sdk = new Sdk();
-
+            
             //act
             Task<TaskResult> temp = sdk.CreateUser(testUser, testUserPassword);
             TaskResult result = temp.Result;
@@ -30,7 +30,6 @@ namespace UnitTestSdk
         public void LogTestUser()
         {
             //arrange
-            Sdk sdk = new Sdk();
             CreateUser();
 
             //act
@@ -42,6 +41,23 @@ namespace UnitTestSdk
 
             //ensure user is properly connected
             Assert.IsTrue(sdk.getStatus());
+        }
+
+        [TestMethod]
+        public void TestRefreshToken()
+        {
+            string expiredToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE1NTEyNzIzNzMsImV4cCI6MTU1MTI3MjM3M30.lqMpYLekfiCA9niarNFDW35evHoBzhmNEYgLrmNvsxU";
+
+            //arrange
+            CreateUser();
+            sdk.injectThisToken(new dejamobile_takehome_sdk.Models.UserModel(testUser, testUserPassword), expiredToken);
+
+            sdk.init();
+
+            //act
+            Task<TaskResult> temp = sdk.AddCard("nicolas debeaupte", "4143869183957495", "01/25", "123");
+            TaskResult result = temp.Result;
+            Assert.IsTrue(result.result);
         }
     }
 }
