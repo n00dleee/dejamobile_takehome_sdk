@@ -104,26 +104,25 @@ namespace dejamobile_takehome_sdk
             }
         }
 
-        public async Task<TaskResult> AddCard(string ownerName, string cardNumber, string expDate, string crypto, string description ="")
+        public async Task<TaskResult> AddCard(Models.CardModel card)
         {
             if (!status)
                 return new TaskResult(TaskResult.TaskName.addCard, false, TaskResult.TaskStatus.finished, null, "SDK ERROR : user not connected. Please connect user before trying to use this method");
 
-            HttpResponseMessage rsp = await customHttpClient.performRequest(DejaMobileHttpClient.Request.addCard, new Models.CardModel(ownerName, cardNumber, expDate, crypto));
+            HttpResponseMessage rsp = await customHttpClient.performRequest(DejaMobileHttpClient.Request.addCard, card);
             if (rsp.StatusCode == System.Net.HttpStatusCode.Created)
             {
                 string json = await DejaMobileHttpClient.getJsonFromHttpResponse(rsp);
-                Models.CardModel card = JsonConvert.DeserializeObject<Models.CardModel>(json);
+                Models.CardModel digitizedCard = JsonConvert.DeserializeObject<Models.CardModel>(json);
                 //add production date & description
-                if (description != "")
-                    card.description = description;
-                card.productionDate = DateTime.Now.ToString();
-                card.uid = Guid.NewGuid().ToString();
+                digitizedCard.description = card.description;
+                digitizedCard.productionDate = DateTime.Now.ToString();
+                digitizedCard.uid = Guid.NewGuid().ToString();
 
-                if(storeCardInDb(card))
-                    return new TaskResult(TaskResult.TaskName.addCard, true, TaskResult.TaskStatus.finished, card, "Card successfully added");
+                if(storeCardInDb(digitizedCard))
+                    return new TaskResult(TaskResult.TaskName.addCard, true, TaskResult.TaskStatus.finished, digitizedCard, "Card successfully added");
                 else
-                    return new TaskResult(TaskResult.TaskName.addCard, false, TaskResult.TaskStatus.finished, card, "SDK ERROR : Card successfully added but an error has been thrown while trying to store card in database");
+                    return new TaskResult(TaskResult.TaskName.addCard, false, TaskResult.TaskStatus.finished, digitizedCard, "SDK ERROR : Card successfully added but an error has been thrown while trying to store card in database");
             }
             else
             {

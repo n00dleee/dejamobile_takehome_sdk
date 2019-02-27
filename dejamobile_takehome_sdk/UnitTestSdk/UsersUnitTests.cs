@@ -57,7 +57,7 @@ namespace UnitTestSdk
             sdk.init();
 
             //act
-            Task<TaskResult> temp = sdk.AddCard("nicolas debeaupte", "4143869183957495", "01/25", "123");
+            Task<TaskResult> temp = sdk.AddCard(new dejamobile_takehome_sdk.Models.CardModel("nicolas debeaupte", "4143869183957495", "01/25", "123"));
             TaskResult result = temp.Result;
             Assert.IsTrue(result.result);
         }
