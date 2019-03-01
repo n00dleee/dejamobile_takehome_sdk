@@ -7,4 +7,4 @@ All lastest developments have been merged to **MASTER branch**, be sure to check
 
 # Getting started
 
-To browse this project with Visual Studio, open **dejamobile_takehome_bankapp.sln** solution, then click **Build** then **Build solution**. It should build the project and export a **.dll** ouput file. Here we are, the **dejamobileSDK** has been generated and is ready to use by whoever wants to implement its functionnalities.
+To browse this project with Visual Studio, open **dejamobile_takehome_sdk.sln** solution, then click **Build** then **Build solution**. It should build the project and export a **.dll** ouput file. Here we are, the **dejamobileSDK** has been generated and is ready to used by whoever wants to implement its functionnalities.
