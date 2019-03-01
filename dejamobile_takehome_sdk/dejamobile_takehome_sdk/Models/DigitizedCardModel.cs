@@ -17,13 +17,15 @@ namespace dejamobile_takehome_sdk.Models
     {
         public string ownerName { get; set; }
         public string expirationDate { get; set; }
+        public string cardNumber { get; set; }
         public string crypto { get; set; }
 
-        public CardModel(string ownerName, string expirationDate, string crypto)
+        public CardModel(string ownerName, string cardNumber, string expirationDate, string crypto)
         {
             this.ownerName = ownerName;
             this.expirationDate = expirationDate;
             this.crypto = crypto;
+            this.cardNumber = cardNumber;
         }
     }
 }

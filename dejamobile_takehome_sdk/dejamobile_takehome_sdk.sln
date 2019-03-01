@@ -5,6 +5,8 @@ VisualStudioVersion = 15.0.26730.12
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "dejamobile_takehome_sdk", "dejamobile_takehome_sdk\dejamobile_takehome_sdk.csproj", "{CFBFAF37-DF8D-442D-9EF6-0EE68FCD695F}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnitTestSdk", "UnitTestSdk\UnitTestSdk.csproj", "{A67118DD-D487-4723-99D3-E413314C0CDA}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{CFBFAF37-DF8D-442D-9EF6-0EE68FCD695F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CFBFAF37-DF8D-442D-9EF6-0EE68FCD695F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{CFBFAF37-DF8D-442D-9EF6-0EE68FCD695F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A67118DD-D487-4723-99D3-E413314C0CDA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A67118DD-D487-4723-99D3-E413314C0CDA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A67118DD-D487-4723-99D3-E413314C0CDA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A67118DD-D487-4723-99D3-E413314C0CDA}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
