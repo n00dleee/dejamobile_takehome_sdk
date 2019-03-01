@@ -154,9 +154,9 @@ namespace dejamobile_takehome_sdk
                 return new TaskResult(TaskResult.TaskName.removeCard, false, TaskResult.TaskStatus.finished, null, "SDK ERROR : database is not accessible. All data management is disabled until database is back on track. Please retry to use init() method");
 
             if (dbManager.deleteDigitizedCard(uid))
-                return new TaskResult(TaskResult.TaskName.removeCard, true, TaskResult.TaskStatus.finished, null, "Card successfully deleted");
+                return new TaskResult(TaskResult.TaskName.removeCard, true, TaskResult.TaskStatus.finished, uid, "Card successfully deleted");
             else
-                return new TaskResult(TaskResult.TaskName.removeCard, false, TaskResult.TaskStatus.finished, null, "SDK ERROR : error while deleting digitized card");
+                return new TaskResult(TaskResult.TaskName.removeCard, false, TaskResult.TaskStatus.finished, uid, "SDK ERROR : error while deleting digitized card");
         }
 
         public async Task<TaskResult> getPaymentsHistory()
